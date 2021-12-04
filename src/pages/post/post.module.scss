@@ -1,1 +1,40 @@
-// TODO
+.banner {
+  img {
+    width: 100vw;
+    height: 400px;
+  }
+}
+
+.content {
+  margin-top: 5rem;
+
+  h1 {
+    color: var(--heading);
+    font-size: 3rem;
+    margin-bottom: 1.5rem;
+  }
+
+  span {
+    font-size: 0.875rem;
+    color: var(--info);
+
+    & + span {
+      margin-left: 1.5rem;
+    }
+  }
+
+  svg {
+    margin-right: 0.5rem;
+  }
+
+  h2 {
+    margin-top: 4rem;
+    margin-bottom: 2rem;
+    font-size: 2.25rem;
+    color: var(--heading);
+  }
+
+  li {
+    margin-top: 2rem;
+  }
+}
