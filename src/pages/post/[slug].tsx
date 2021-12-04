@@ -1,5 +1,6 @@
 /* eslint-disable prettier/prettier */
 import { GetStaticPaths, GetStaticProps } from 'next';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { FiCalendar, FiUser, FiClock } from 'react-icons/fi';
 import Image from 'next/image';
@@ -9,7 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import Prismic from '@prismicio/client';
 import { RichText } from 'prismic-dom';
 import { getPrismicClient } from '../../services/prismic';
-
+import Comments from '../../components/Comments';
 import common from '../../styles/common.module.scss';
 import styles from './post.module.scss';
 
@@ -32,9 +33,18 @@ interface Post {
 
 interface PostProps {
   post: Post;
+  previousPost: {
+    slug: string;
+    title: string;
+  }
+  nextPost: {
+    slug: string;
+    title: string;
+  };
+  preview: boolean
 }
 
-export default function Post({ post }: PostProps): JSX.Element {
+export default function Post({ post, preview, previousPost, nextPost }: PostProps): JSX.Element {
   const router = useRouter();
 
   if (router.isFallback) {
@@ -79,6 +89,22 @@ export default function Post({ post }: PostProps): JSX.Element {
           </div>
         ))}
       </article>
+      {previousPost && (
+        <Link href={`/post/${previousPost.slug}`}>
+          <a>{previousPost.title}<span>Post anterior</span></a>
+        </Link>
+      )}
+      {nextPost && (
+        <Link href={`/post/${nextPost.slug}`}>
+          <a>{nextPost.title}<span>Post seguinte</span></a>
+        </Link>
+      )}
+      <Comments />
+      {preview && (
+        <Link href="/api/exit-preview">
+          <a>Sair do modo preview</a>
+        </Link>
+      )}
     </>
   )
 }
@@ -105,10 +131,34 @@ export const getStaticPaths: GetStaticPaths = async () => {
   }
 };
 
-export const getStaticProps: GetStaticProps<PostProps> = async ({ params }) => {
+export const getStaticProps: GetStaticProps<PostProps> = async ({ params, preview = false, dataPrev }) => {
   const { slug } = params;
   const prismic = getPrismicClient();
-  const response = await prismic.getByUID('post', String(slug), {});
+  const response = await prismic.getByUID('post', String(slug), {
+    ref: dataPrev?.ref ?? null,
+  });
+
+  const prevResponse = await prismic.query(
+    [Prismic.predicates.at('document.type', 'posts')],
+    {
+      fetch: ['posts.title'],
+      pageSize: 1,
+      after: response.id,
+      orderings: '[document.first_publication_date desc]',
+      ref: dataPrev?.ref ?? null
+    }
+  )
+
+  const nextResponse = await prismic.query(
+    [Prismic.predicates.at('document.type', 'posts')],
+    {
+      fetch: ['posts.title'],
+      pageSize: 1,
+      after: response.id,
+      orderings: '[document.first_publication_date]',
+      ref: dataPrev?.ref ?? null
+    }
+  )
 
   const post = {
     first_publication_date: response.first_publication_date,
@@ -125,9 +175,22 @@ export const getStaticProps: GetStaticProps<PostProps> = async ({ params }) => {
     }
   }
 
+  const previousPost = prevResponse.results.length > 0 ? {
+    slug: prevResponse.results[0].uid,
+    title: prevResponse.results[0].data.title,
+  } : null;
+
+  const nextPost = nextResponse.results.length > 0 ? {
+    slug: nextResponse.results[0].uid,
+    title: nextResponse.results[0].data.title,
+  } : null;
+
   return {
     props: {
-      post
+      post,
+      preview,
+      previousPost,
+      nextPost
     }
   }
 };
