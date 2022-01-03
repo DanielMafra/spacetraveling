@@ -24,6 +24,7 @@ Users should be able to:
 ### Screenshot
 
 ![](./screenshotA.png)
+
 ![](./screenshotB.png)
 
 ## Development process
